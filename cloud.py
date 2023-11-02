@@ -1,8 +1,8 @@
 import boto3
 import os
 
-aws_access_key_id = os.environ.get("AccessID")
-aws_secret_access_key = os.environ.get("AccessKey")
+aws_access_key_id = 
+aws_secret_access_key = 
 region_name = 'eu-north-1'  # 사용하려는 AWS 리전을 지정하세요
 
 # AWS 클라이언트 생성
