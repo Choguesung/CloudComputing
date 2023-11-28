@@ -1,6 +1,6 @@
 import boto3
 import os
-import subprocess
+import time
 
 # 환경변수로 설정
 aws_access_key_id = os.environ.get("accessID")
@@ -11,6 +11,7 @@ print(aws_access_key_id)
 
 # AWS 클라이언트 생성
 ec2 = boto3.client('ec2', region_name=region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+ssm = boto3.client('ssm', region_name=region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 
 
 def list_instances():
@@ -72,6 +73,24 @@ def list_images():
     for image in images['Images']:
         print(f"[ImageID] {image['ImageId']}, [Name] {image['Name']}, [Owner] {image['OwnerId']}")
 
+def command_input():
+    ins_id = input("Enter Instance id: ")
+    command = input("Enter command: ")
+    command_response = ssm.send_command(
+        InstanceIds=[ins_id],
+        DocumentName="AWS-RunShellScript",
+        Parameters={
+            'commands': [command],
+            'executionTimeout': ['3600'], },
+        TimeoutSeconds=30, )
+    command_id = command_response['Command']['CommandId']
+    time.sleep(2)
+    output = ssm.get_command_invocation(
+        CommandId=command_id,
+        InstanceId=ins_id,
+    )
+    print(output['StandardOutputContent'])
+
 while True:
     print("                                                            ")
     print("                                                            ")
@@ -113,6 +132,8 @@ while True:
         reboot_instance(instance_id)
     elif number == 8:
         list_images()
+    elif number == 9:
+        command_input()
     elif number == 99:
         print("Goodbye!")
         break
