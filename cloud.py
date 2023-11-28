@@ -1,6 +1,7 @@
 import boto3
 import os
 import time
+from datetime import datetime, timedelta
 
 # 환경변수로 설정
 aws_access_key_id = os.environ.get("accessID")
@@ -54,7 +55,7 @@ def create_instance(ami_id):
     print(f"Creating instance with AMI {ami_id}")
     instances = ec2.run_instances(
         ImageId=ami_id,
-        InstanceType='t2.micro',
+        InstanceType='t3.micro',
         MaxCount=1,
         MinCount=1
     )
@@ -91,6 +92,7 @@ def command_input():
     )
     print(output['StandardOutputContent'])
 
+
 while True:
     print("                                                            ")
     print("                                                            ")
@@ -112,7 +114,6 @@ while True:
     else:
         print("Invalid input!")
         break
-
     if number == 1:
         list_instances()
     elif number == 2:
