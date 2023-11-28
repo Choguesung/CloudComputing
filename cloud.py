@@ -13,6 +13,7 @@ print(aws_access_key_id)
 # AWS 클라이언트 생성
 ec2 = boto3.client('ec2', region_name=region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 ssm = boto3.client('ssm', region_name=region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+cloudwatch = boto3.client('cloudwatch', region_name=region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 
 
 def list_instances():
@@ -92,6 +93,44 @@ def command_input():
     )
     print(output['StandardOutputContent'])
 
+def get_instance_monitoring_data(instance_id):
+    try:
+        # 인스턴스의 상태 확인
+        instance_status = ec2.describe_instance_status(InstanceIds=[instance_id])
+        print(f"Instance Status: {instance_status['InstanceStatuses']}")
+
+        # 인스턴스의 모니터링 데이터 확인
+        monitoring_data = cloudwatch.get_metric_data(
+            MetricDataQueries=[
+                {
+                    'Id': 'm1',
+                    'MetricStat': {
+                        'Metric': {
+                            'Namespace': 'AWS/EC2',
+                            'MetricName': 'CPUUtilization',
+                            'Dimensions': [
+                                {
+                                    'Name': 'InstanceId',
+                                    'Value': instance_id
+                                },
+                            ]
+                        },
+                        'Period': 300,
+                        'Stat': 'Average',
+                    },
+                    'ReturnData': True,
+                },
+            ],
+            StartTime=(datetime.utcnow() - timedelta(seconds=3600)),  # 1 hour ago
+            EndTime=datetime.utcnow(),
+        )
+
+        print(f"Monitoring Data: {monitoring_data['MetricDataResults']}")
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+
 
 while True:
     print("                                                            ")
@@ -136,6 +175,9 @@ while True:
         list_images()
     elif number == 9:
         command_input()
+    elif number == 10:
+        instance_id = input("Enter instance id: ")
+        get_instance_monitoring_data(instance_id)
     elif number == 99:
         print("Goodbye!")
         break
