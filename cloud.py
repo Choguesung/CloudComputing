@@ -101,6 +101,7 @@ while True:
     print("  3. start instance               4. available regions      ")
     print("  5. stop instance                6. create instance        ")
     print("  7. reboot instance              8. list images            ")
+    print("  9. input command                                          ")
     print("                                 99. quit                   ")
     print("------------------------------------------------------------")
 
