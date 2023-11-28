@@ -84,7 +84,7 @@ def command_input():
             'executionTimeout': ['3600'], },
         TimeoutSeconds=30, )
     command_id = command_response['Command']['CommandId']
-    time.sleep(2)
+    time.sleep(5)
     output = ssm.get_command_invocation(
         CommandId=command_id,
         InstanceId=ins_id,
