@@ -1,5 +1,6 @@
 import boto3
 import os
+import subprocess
 
 # 환경변수로 설정
 aws_access_key_id = os.environ.get("accessID")
