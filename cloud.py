@@ -70,7 +70,7 @@ def reboot_instance(instance_id):
 
 def list_images():
     print("Listing images....")
-    filters = [{'Name': 'name', 'Values': ['htcondor-slave-image']}]
+    filters = [{'Name': 'name', 'Values': ['aws-htcondor-slave']}]
     images = ec2.describe_images(Filters=filters)
     for image in images['Images']:
         print(f"[ImageID] {image['ImageId']}, [Name] {image['Name']}, [Owner] {image['OwnerId']}")
