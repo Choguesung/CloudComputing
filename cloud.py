@@ -14,6 +14,8 @@ print(aws_access_key_id)
 ec2 = boto3.client('ec2', region_name=region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 ssm = boto3.client('ssm', region_name=region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 cloudwatch = boto3.client('cloudwatch', region_name=region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+sts_client = boto3.client('sts', aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+
 
 
 def list_instances():
@@ -70,8 +72,11 @@ def reboot_instance(instance_id):
 
 def list_images():
     print("Listing images....")
-    filters = [{'Name': 'name', 'Values': ['aws-htcondor-slave']}]
-    images = ec2.describe_images(Filters=filters)
+    # filters = [{'Name': 'name', 'Values': ['masterimg']}]
+
+    aws_account_id = sts_client.get_caller_identity().get('Account')
+
+    images = ec2.describe_images(Owners=[aws_account_id])
     for image in images['Images']:
         print(f"[ImageID] {image['ImageId']}, [Name] {image['Name']}, [Owner] {image['OwnerId']}")
 
