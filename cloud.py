@@ -102,7 +102,14 @@ def get_instance_monitoring_data(instance_id):
     try:
         # 인스턴스의 상태 확인
         instance_status = ec2.describe_instance_status(InstanceIds=[instance_id])
-        print(f"Instance Status: {instance_status['InstanceStatuses']}")
+        print("Instance Status:")
+        for status in instance_status['InstanceStatuses']:
+            print(f"  - Availability Zone: {status['AvailabilityZone']}")
+            print(f"  - Instance ID: {status['InstanceId']}")
+            print(f"  - Instance State: {status['InstanceState']['Name']}")
+            print(f"  - System Status: {status['SystemStatus']['Status']}")
+            print(f"  - Instance Status: {status['InstanceStatus']['Status']}")
+            print("\n")
 
         # 인스턴스의 모니터링 데이터 확인
         monitoring_data = cloudwatch.get_metric_data(
@@ -130,7 +137,14 @@ def get_instance_monitoring_data(instance_id):
             EndTime=datetime.utcnow(),
         )
 
-        print(f"Monitoring Data: {monitoring_data['MetricDataResults']}")
+        print("Monitoring Data:")
+        for result in monitoring_data['MetricDataResults']:
+            print(f"  - Query ID: {result['Id']}")
+            print(f"  - Metric Data:")
+            for timestamp, value in zip(result['Timestamps'], result['Values']):
+                formatted_time = datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                print(f"    - Time: {formatted_time}, Value: {value}")
+            print("\n")
 
     except Exception as e:
         print(f"Error: {e}")
@@ -147,7 +161,7 @@ while True:
     print("  3. start instance               4. available regions      ")
     print("  5. stop instance                6. create instance        ")
     print("  7. reboot instance              8. list images            ")
-    print("  9. input command                                          ")
+    print("  9. input command               10. instance monitoring    ")
     print("                                 99. quit                   ")
     print("------------------------------------------------------------")
 
