@@ -39,10 +39,22 @@ def available_zones():
     print(f"You have access to {len(availability_zones['AvailabilityZones'])} Availability Zones.")
 
 def start_instance(instance_id):
-    print(f"Starting .... {instance_id}")
-    ec2.start_instances(InstanceIds=[instance_id])
-    print(f"Successfully started instance {instance_id}")
+    try:
+        # 현재 상태 확인
+        response = ec2.describe_instances(InstanceIds=[instance_id])
+        state = response['Reservations'][0]['Instances'][0]['State']['Name']
 
+        # 인스턴스 상태에 따라 처리
+        if state == 'running':
+            print(f"Instance {instance_id} is already running.")
+        elif state == 'stopped':
+            print(f"Starting .... {instance_id}")
+            ec2.start_instances(InstanceIds=[instance_id])
+            print(f"Successfully started instance {instance_id}")
+        else:
+            print(f"Cannot start instance {instance_id} in the current state: {state}")
+    except Exception as e:
+        print(f"Error starting instance {instance_id}: {e}")
 def available_regions():
     print("Available regions....")
     regions_response = ec2.describe_regions()
@@ -158,6 +170,44 @@ def ins_credit(instance_id):
     print("[ID] " + instance_id + ", [CPU Credits] " + credits['InstanceCreditSpecifications'][0]['CpuCredits'])
 
 
+instance_ids = ['i-05a765c9ac9acaaba','i-0dedbcb34fe2c5b8e']
+
+
+def manage_instances():
+    try:
+        virtual_usage = int(input("Enter virtual usage (0-100): "))  # 0부터 100으로 수정
+        
+        if 0 <= virtual_usage <= 100:  # 0부터 100으로 수정
+            total_instances = len(instance_ids)
+            threshold = (virtual_usage / 100) * total_instances
+
+            # 현재 실행 중인 인스턴스 수 확인
+            running_instances = 0
+            for instance_id in instance_ids:
+                response = ec2.describe_instances(InstanceIds=[instance_id])
+                state = response['Reservations'][0]['Instances'][0]['State']['Name']
+                if state == 'running':
+                    running_instances += 1
+
+            # 시작 또는 중지할 인스턴스 수 계산
+            to_start = max(0, min(total_instances, int(threshold) - running_instances))
+            to_stop = max(0, running_instances - int(threshold))
+
+            # 인스턴스 시작
+            for i in range(to_start):
+                start_instance(instance_ids[i])
+                print(f"Instance {instance_ids[i]} started.")
+
+            # 인스턴스 중지
+            for i in range(to_stop):
+                stop_instance(instance_ids[total_instances - 1 - i])
+                print(f"Instance {instance_ids[total_instances - 1 - i]} stopped.")
+        else:
+            print("Invalid virtual usage. Please enter a number between 0 and 100.")  # 0부터 100으로 수정
+    except ValueError:
+        print("Invalid input. Please enter a valid number.")
+
+
 while True:
     print("                                                            ")
     print("                                                            ")
@@ -207,6 +257,8 @@ while True:
     elif number == 11:
         instance_id = input("Enter instance id: ")
         ins_credit(instance_id)
+    elif number == 12:
+        manage_instances()
     elif number == 99:
         print("Goodbye!")
         break
