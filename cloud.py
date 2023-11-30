@@ -2,6 +2,7 @@ import boto3
 import os
 import time
 from datetime import datetime, timedelta
+from collections import deque
 
 # 환경변수로 설정
 aws_access_key_id = os.environ.get("accessID")
@@ -55,6 +56,7 @@ def start_instance(instance_id):
             print(f"Cannot start instance {instance_id} in the current state: {state}")
     except Exception as e:
         print(f"Error starting instance {instance_id}: {e}")
+
 def available_regions():
     print("Available regions....")
     regions_response = ec2.describe_regions()
@@ -170,40 +172,45 @@ def ins_credit(instance_id):
     print("[ID] " + instance_id + ", [CPU Credits] " + credits['InstanceCreditSpecifications'][0]['CpuCredits'])
 
 
-instance_ids = ['i-05a765c9ac9acaaba','i-0dedbcb34fe2c5b8e']
-
+initial_instance_ids = ['i-05a765c9ac9acaaba','i-0dedbcb34fe2c5b8e']
+instance_ids = deque(initial_instance_ids)
 
 def manage_instances():
     try:
-        virtual_usage = int(input("Enter virtual usage (0-100): "))  # 0부터 100으로 수정
+        virtual_usage = int(input("Enter virtual usage (0-100): "))
         
-        if 0 <= virtual_usage <= 100:  # 0부터 100으로 수정
-            total_instances = len(instance_ids)
-            threshold = (virtual_usage / 100) * total_instances
+        if 0 <= virtual_usage <= 100:
+            total_instances = len(initial_instance_ids)  # 초기 인스턴스 수로 변경
+            threshold = int((virtual_usage / 100) * total_instances)
 
             # 현재 실행 중인 인스턴스 수 확인
-            running_instances = 0
-            for instance_id in instance_ids:
-                response = ec2.describe_instances(InstanceIds=[instance_id])
-                state = response['Reservations'][0]['Instances'][0]['State']['Name']
-                if state == 'running':
-                    running_instances += 1
+            running_instances = len(instance_ids)
 
             # 시작 또는 중지할 인스턴스 수 계산
-            to_start = max(0, min(total_instances, int(threshold) - running_instances))
-            to_stop = max(0, running_instances - int(threshold))
+            to_start = max(0, threshold - running_instances)
+            to_stop = max(0, running_instances - threshold)
 
             # 인스턴스 시작
-            for i in range(to_start):
-                start_instance(instance_ids[i])
-                print(f"Instance {instance_ids[i]} started.")
+            for _ in range(to_start):
+                if instance_ids:  # 큐가 비어있지 않을 때만 시작
+                    instance_id = instance_ids.popleft()
+                    start_instance(instance_id)
+                    print(f"Instance {instance_id} started.")
+                    instance_ids.append(instance_id)  # 큐 업데이트
+            else:
+                # 큐가 비어있는 경우, 새 인스턴스를 시작
+                for _ in range(to_start):
+                    instance_id = create_instance()
+                    print(f"Instance {instance_id} started.")
+                    instance_ids.append(instance_id)
 
             # 인스턴스 중지
-            for i in range(to_stop):
-                stop_instance(instance_ids[total_instances - 1 - i])
-                print(f"Instance {instance_ids[total_instances - 1 - i]} stopped.")
+            for _ in range(to_stop):
+                instance_id = instance_ids.pop()
+                stop_instance(instance_id)
+                print(f"Instance {instance_id} stopped.")
         else:
-            print("Invalid virtual usage. Please enter a number between 0 and 100.")  # 0부터 100으로 수정
+            print("Invalid virtual usage. Please enter a number between 0 and 100.")
     except ValueError:
         print("Invalid input. Please enter a valid number.")
 
