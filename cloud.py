@@ -133,8 +133,8 @@ def get_instance_monitoring_data(instance_id):
                     'ReturnData': True,
                 },
             ],
-            StartTime=(datetime.utcnow() - timedelta(seconds=3600)),  # 1 hour ago
-            EndTime=datetime.utcnow(),
+            StartTime=int((datetime.utcnow() - timedelta(seconds=3600)).timestamp()),  # 1 hour ago
+            EndTime=int(datetime.utcnow().timestamp()),
         )
 
         print("Monitoring Data:")
@@ -149,6 +149,13 @@ def get_instance_monitoring_data(instance_id):
     except Exception as e:
         print(f"Error: {e}")
 
+# cpu 용량 확인하는 코드
+def ins_credit(instance_id):                       
+    print("Instance credit ....")
+    ins_list = []
+    ins_list.append(instance_id)
+    credits = ec2.describe_instance_credit_specifications(InstanceIds=ins_list)
+    print("[ID] " + instance_id + ", [CPU Credits] " + credits['InstanceCreditSpecifications'][0]['CpuCredits'])
 
 
 while True:
@@ -197,6 +204,9 @@ while True:
     elif number == 10:
         instance_id = input("Enter instance id: ")
         get_instance_monitoring_data(instance_id)
+    elif number == 11:
+        instance_id = input("Enter instance id: ")
+        ins_credit(instance_id)
     elif number == 99:
         print("Goodbye!")
         break
