@@ -20,17 +20,15 @@ sts_client = boto3.client('sts', aws_access_key_id=aws_access_key_id, aws_secret
 def list_instances():
     print("Listing instances....")
     reservations = ec2.describe_instances()
-    instance_ids = []
+
     for reservation in reservations['Reservations']:
         for instance in reservation['Instances']:
-            instance_ids.append(instance['InstanceId'])
             print(f"[id] {instance['InstanceId']}, "
                   f"[AMI] {instance['ImageId']}, "
                   f"[type] {instance['InstanceType']}, "
                   f"[state] {instance['State']['Name']}, "
                   f"[monitoring state] {instance['Monitoring']['State']}")
     
-    return instance_ids
 
 def available_zones():
     print("Available zones....")
@@ -174,6 +172,37 @@ def ins_credit(instance_id):
     print("[ID] " + instance_id + ", [CPU Credits] " + credits['InstanceCreditSpecifications'][0]['CpuCredits'])
 
 
+def running_instances():
+    print("Listing instances....")
+    reservations = ec2.describe_instances()
+
+    running_instances = []
+    for reservation in reservations['Reservations']:
+        for instance in reservation['Instances']:
+            if instance['State']['Name'] == 'running':
+                running_instances.append(instance['InstanceId'])
+
+    return running_instances
+
+def all_instances():
+    print("Listing instances....")
+    reservations = ec2.describe_instances()
+
+    all_instances = []
+    for reservation in reservations['Reservations']:
+        for instance in reservation['Instances']:
+            all_instances.append(instance)
+
+    return all_instances
+
+# 전체 - 실행 = 종료 인스턴스
+def terminated_instances():
+    running_instance_ids = set(running_instances())
+    all_instance_objects = all_instances()
+    
+    terminated_instances = [instance['InstanceId'] for instance in all_instance_objects if instance['InstanceId'] not in running_instance_ids]
+    
+    print(terminated_instances)
 
 
 
@@ -228,7 +257,7 @@ while True:
         instance_id = input("Enter instance id: ")
         ins_credit(instance_id)
     elif number == 12:
-        continue
+        terminated_instances()
     elif number == 99:
         print("Goodbye!")
         break
