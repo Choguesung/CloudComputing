@@ -20,13 +20,17 @@ sts_client = boto3.client('sts', aws_access_key_id=aws_access_key_id, aws_secret
 def list_instances():
     print("Listing instances....")
     reservations = ec2.describe_instances()
+    instance_ids = []
     for reservation in reservations['Reservations']:
         for instance in reservation['Instances']:
+            instance_ids.append(instance['InstanceId'])
             print(f"[id] {instance['InstanceId']}, "
                   f"[AMI] {instance['ImageId']}, "
                   f"[type] {instance['InstanceType']}, "
                   f"[state] {instance['State']['Name']}, "
                   f"[monitoring state] {instance['Monitoring']['State']}")
+    
+    return instance_ids
 
 def available_zones():
     print("Available zones....")
@@ -169,28 +173,9 @@ def ins_credit(instance_id):
     credits = ec2.describe_instance_credit_specifications(InstanceIds=ins_list)
     print("[ID] " + instance_id + ", [CPU Credits] " + credits['InstanceCreditSpecifications'][0]['CpuCredits'])
 
-def adjust_instance_count(desired_count):
-    try:
-        # 현재 실행 중인 인스턴스 수 확인
-        response = ec2.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
-        running_instances = len(response['Reservations'])
 
-        # 원하는 수와 비교하여 적절한 조치 수행
-        if running_instances < desired_count:
-            # 추가 인스턴스 시작
-            for _ in range(desired_count - running_instances):
-                start_instance(response['Reservations'][0]['Instances'][0]['InstanceId'])
-        elif running_instances > desired_count:
-            # 초과된 인스턴스 중지
-            instances_to_stop = response['Reservations'][:running_instances - desired_count]
-            for reservation in instances_to_stop:
-                instance_id = reservation['Instances'][0]['InstanceId']
-                stop_instance(instance_id)
-        else:
-            print("현재 실행 중인 인스턴스 수가 이미 원하는 수와 동일합니다.")
 
-    except Exception as e:
-        print(f"인스턴스 수 조절 중 오류 발생: {e}")
+
 
 
 while True:
@@ -243,8 +228,7 @@ while True:
         instance_id = input("Enter instance id: ")
         ins_credit(instance_id)
     elif number == 12:
-        desired_instance_count = int(input("Enter the desired number of instances: "))
-        adjust_instance_count(desired_instance_count)
+        continue
     elif number == 99:
         print("Goodbye!")
         break
