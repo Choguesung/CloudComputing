@@ -17,8 +17,6 @@ ssm = boto3.client('ssm', region_name=region_name, aws_access_key_id=aws_access_
 cloudwatch = boto3.client('cloudwatch', region_name=region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 sts_client = boto3.client('sts', aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 
-
-
 def list_instances():
     print("Listing instances....")
     reservations = ec2.describe_instances()
@@ -171,48 +169,28 @@ def ins_credit(instance_id):
     credits = ec2.describe_instance_credit_specifications(InstanceIds=ins_list)
     print("[ID] " + instance_id + ", [CPU Credits] " + credits['InstanceCreditSpecifications'][0]['CpuCredits'])
 
-
-initial_instance_ids = ['i-05a765c9ac9acaaba','i-0dedbcb34fe2c5b8e']
-instance_ids = deque(initial_instance_ids)
-
-def manage_instances():
+def adjust_instance_count(desired_count):
     try:
-        virtual_usage = int(input("Enter virtual usage (0-100): "))
-        
-        if 0 <= virtual_usage <= 100:
-            total_instances = len(initial_instance_ids)  # 초기 인스턴스 수로 변경
-            threshold = int((virtual_usage / 100) * total_instances)
+        # 현재 실행 중인 인스턴스 수 확인
+        response = ec2.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
+        running_instances = len(response['Reservations'])
 
-            # 현재 실행 중인 인스턴스 수 확인
-            running_instances = len(instance_ids)
-
-            # 시작 또는 중지할 인스턴스 수 계산
-            to_start = max(0, threshold - running_instances)
-            to_stop = max(0, running_instances - threshold)
-
-            # 인스턴스 시작
-            for _ in range(to_start):
-                if instance_ids:  # 큐가 비어있지 않을 때만 시작
-                    instance_id = instance_ids.popleft()
-                    start_instance(instance_id)
-                    print(f"Instance {instance_id} started.")
-                    instance_ids.append(instance_id)  # 큐 업데이트
-            else:
-                # 큐가 비어있는 경우, 새 인스턴스를 시작
-                for _ in range(to_start):
-                    instance_id = create_instance()
-                    print(f"Instance {instance_id} started.")
-                    instance_ids.append(instance_id)
-
-            # 인스턴스 중지
-            for _ in range(to_stop):
-                instance_id = instance_ids.pop()
+        # 원하는 수와 비교하여 적절한 조치 수행
+        if running_instances < desired_count:
+            # 추가 인스턴스 시작
+            for _ in range(desired_count - running_instances):
+                start_instance(response['Reservations'][0]['Instances'][0]['InstanceId'])
+        elif running_instances > desired_count:
+            # 초과된 인스턴스 중지
+            instances_to_stop = response['Reservations'][:running_instances - desired_count]
+            for reservation in instances_to_stop:
+                instance_id = reservation['Instances'][0]['InstanceId']
                 stop_instance(instance_id)
-                print(f"Instance {instance_id} stopped.")
         else:
-            print("Invalid virtual usage. Please enter a number between 0 and 100.")
-    except ValueError:
-        print("Invalid input. Please enter a valid number.")
+            print("현재 실행 중인 인스턴스 수가 이미 원하는 수와 동일합니다.")
+
+    except Exception as e:
+        print(f"인스턴스 수 조절 중 오류 발생: {e}")
 
 
 while True:
@@ -265,7 +243,8 @@ while True:
         instance_id = input("Enter instance id: ")
         ins_credit(instance_id)
     elif number == 12:
-        manage_instances()
+        desired_instance_count = int(input("Enter the desired number of instances: "))
+        adjust_instance_count(desired_instance_count)
     elif number == 99:
         print("Goodbye!")
         break
