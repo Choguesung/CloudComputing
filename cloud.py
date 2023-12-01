@@ -185,7 +185,6 @@ def running_instances():
     return running_instances
 
 def all_instances():
-    print("Listing instances....")
     reservations = ec2.describe_instances()
 
     all_instances = []
@@ -202,8 +201,28 @@ def terminated_instances():
     
     terminated_instances = [instance['InstanceId'] for instance in all_instance_objects if instance['InstanceId'] not in running_instance_ids]
     
-    print(terminated_instances)
+    return terminated_instances
 
+def desired_instances(desired_instances_count):
+    print('함수 실행 중')
+    running_instances_list = running_instances()
+
+    if desired_instances_count > len(running_instances_list):
+        # 원하는 수가 실행 중인 수보다 크면 부족한 만큼의 인스턴스를 시작합니다.
+        instances_to_start = desired_instances_count - len(running_instances_list)
+        terminated_instances_list = terminated_instances()[:instances_to_start]
+        ec2.start_instances(InstanceIds=terminated_instances_list)
+
+    elif desired_instances_count < len(running_instances_list):
+        # 실행 중인 수가 원하는 수보다 크면 초과한 만큼의 인스턴스를 중지합니다.
+        instances_to_stop = len(running_instances_list) - desired_instances_count
+        instances_to_stop_list = running_instances_list[:instances_to_stop]
+        ec2.stop_instances(InstanceIds=instances_to_stop_list)
+
+    else:
+        print('현재 인스턴스 개수가 원하는 수와 같습니다')
+
+    list_instances()
 
 
 
@@ -257,7 +276,8 @@ while True:
         instance_id = input("Enter instance id: ")
         ins_credit(instance_id)
     elif number == 12:
-        terminated_instances()
+        num = int(input("원하는 인스턴스 개수를 입력하세요: "))
+        desired_instances(num)
     elif number == 99:
         print("Goodbye!")
         break
