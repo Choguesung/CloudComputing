@@ -89,10 +89,14 @@ def list_images():
     # filters = [{'Name': 'name', 'Values': ['masterimg']}]
 
     aws_account_id = sts_client.get_caller_identity().get('Account')
+    image_ids = []
 
     images = ec2.describe_images(Owners=[aws_account_id])
     for image in images['Images']:
-        print(f"[ImageID] {image['ImageId']}, [Name] {image['Name']}, [Owner] {image['OwnerId']}")
+        # print(f"[ImageID] {image['ImageId']}, [Name] {image['Name']}, [Owner] {image['OwnerId']}")
+        image_ids.append(image['ImageId'])
+    
+    return image_ids
 
 def command_input():
     ins_id = input("Enter Instance id: ")
@@ -172,8 +176,8 @@ def ins_credit(instance_id):
     print("[ID] " + instance_id + ", [CPU Credits] " + credits['InstanceCreditSpecifications'][0]['CpuCredits'])
 
 
+# 실행중인 인스턴스 개수 리턴
 def running_instances():
-    print("Listing instances....")
     reservations = ec2.describe_instances()
 
     running_instances = []
@@ -184,28 +188,41 @@ def running_instances():
 
     return running_instances
 
+def terminated_instances():
+    reservations = ec2.describe_instances()
+
+    stop_instances = []
+    for reservation in reservations['Reservations']:
+        for instance in reservation['Instances']:
+            if instance['State']['Name'] == 'stopped':
+               stop_instances.append(instance['InstanceId'])
+
+    return stop_instances
+
+# 모든 인스턴스 리턴
 def all_instances():
     reservations = ec2.describe_instances()
 
     all_instances = []
     for reservation in reservations['Reservations']:
         for instance in reservation['Instances']:
-            all_instances.append(instance)
+            if instance['State']['Name'] != 'terminated':
+                all_instances.append(instance)
 
     return all_instances
 
-# 전체 - 실행 = 종료 인스턴스
-def terminated_instances():
-    running_instance_ids = set(running_instances())
-    all_instance_objects = all_instances()
-    
-    terminated_instances = [instance['InstanceId'] for instance in all_instance_objects if instance['InstanceId'] not in running_instance_ids]
-    
-    return terminated_instances
-
+# 원하는 개수 만큼 인스턴스를 실행하는 함수
 def desired_instances(desired_instances_count):
-    print('함수 실행 중')
+    print('함수 실행 중...')
+    all_instance_count = len(running_instances()) + len(terminated_instances())
     running_instances_list = running_instances()
+
+    # 총 인스턴스가 요구된 인스턴스보다 적으면 추가로 인스턴스 생성
+    while desired_instances_count > all_instance_count:
+        # print('인스턴스 개수가 모자라',(desired_instances_count) - (len(all_instances)) , '개의 인스턴스를 추가 생성합니다')
+        image_list = list_images()
+        create_instance(image_list[0])
+        all_instance_count += 1
 
     if desired_instances_count > len(running_instances_list):
         # 원하는 수가 실행 중인 수보다 크면 부족한 만큼의 인스턴스를 시작합니다.
@@ -225,7 +242,6 @@ def desired_instances(desired_instances_count):
     list_instances()
 
 
-
 while True:
     print("                                                            ")
     print("                                                            ")
@@ -237,6 +253,7 @@ while True:
     print("  5. stop instance                6. create instance        ")
     print("  7. reboot instance              8. list images            ")
     print("  9. input command               10. instance monitoring    ")
+    print(" 11. instance credit             12. instance scaling       ")
     print("                                 99. quit                   ")
     print("------------------------------------------------------------")
 
