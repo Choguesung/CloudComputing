@@ -214,13 +214,13 @@ def all_instances():
 # 원하는 개수 만큼 인스턴스를 실행하는 함수
 def desired_instances(desired_instances_count):
     print('함수 실행 중...')
-    # 실행중이거나, 멈춰있는 인스턴스의 개수 총합
+    # 실행중이거나, 멈춰있는 인스턴스의 개수 총합 (terminated는 포함하지 아니한다)
     all_instance_count = len(running_instances()) + len(terminated_instances())
     running_instances_list = running_instances()
 
     # 총 인스턴스가 요구된 인스턴스보다 적으면 추가로 인스턴스 생성
     while desired_instances_count > all_instance_count:
-        print('인스턴스 개수가 모자라',(desired_instances_count) - (len(all_instances)) , '개의 인스턴스를 추가 생성합니다')
+        print(f'인스턴스 개수가 모자라 {desired_instances_count - all_instance_count}개의 인스턴스를 추가 생성합니다')
         image_list = list_images()
         create_instance(image_list[0])
         all_instance_count += 1
