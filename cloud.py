@@ -93,7 +93,7 @@ def list_images():
 
     images = ec2.describe_images(Owners=[aws_account_id])
     for image in images['Images']:
-        # print(f"[ImageID] {image['ImageId']}, [Name] {image['Name']}, [Owner] {image['OwnerId']}")
+        print(f"[ImageID] {image['ImageId']}, [Name] {image['Name']}, [Owner] {image['OwnerId']}")
         image_ids.append(image['ImageId'])
     
     return image_ids
@@ -183,7 +183,7 @@ def running_instances():
     running_instances = []
     for reservation in reservations['Reservations']:
         for instance in reservation['Instances']:
-            if instance['State']['Name'] == 'running':
+            if instance['State']['Name'] == 'running' or instance['State']['Name'] == 'pending':
                 running_instances.append(instance['InstanceId'])
 
     return running_instances
@@ -194,7 +194,7 @@ def terminated_instances():
     stop_instances = []
     for reservation in reservations['Reservations']:
         for instance in reservation['Instances']:
-            if instance['State']['Name'] == 'stopped':
+            if instance['State']['Name'] == 'stopped' or instance['State']['Name'] == 'stopping':
                stop_instances.append(instance['InstanceId'])
 
     return stop_instances
@@ -214,12 +214,13 @@ def all_instances():
 # 원하는 개수 만큼 인스턴스를 실행하는 함수
 def desired_instances(desired_instances_count):
     print('함수 실행 중...')
+    # 실행중이거나, 멈춰있는 인스턴스의 개수 총합
     all_instance_count = len(running_instances()) + len(terminated_instances())
     running_instances_list = running_instances()
 
     # 총 인스턴스가 요구된 인스턴스보다 적으면 추가로 인스턴스 생성
     while desired_instances_count > all_instance_count:
-        # print('인스턴스 개수가 모자라',(desired_instances_count) - (len(all_instances)) , '개의 인스턴스를 추가 생성합니다')
+        print('인스턴스 개수가 모자라',(desired_instances_count) - (len(all_instances)) , '개의 인스턴스를 추가 생성합니다')
         image_list = list_images()
         create_instance(image_list[0])
         all_instance_count += 1
