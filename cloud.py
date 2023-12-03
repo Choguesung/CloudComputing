@@ -227,12 +227,14 @@ def desired_instances(desired_instances_count):
 
     if desired_instances_count > len(running_instances_list):
         # 원하는 수가 실행 중인 수보다 크면 부족한 만큼의 인스턴스를 시작합니다.
+        print(f'{desired_instances_count - len(running_instances_list)}개의 인스턴스를 추가 실행 합니다.')
         instances_to_start = desired_instances_count - len(running_instances_list)
         terminated_instances_list = terminated_instances()[:instances_to_start]
         ec2.start_instances(InstanceIds=terminated_instances_list)
 
     elif desired_instances_count < len(running_instances_list):
         # 실행 중인 수가 원하는 수보다 크면 초과한 만큼의 인스턴스를 중지합니다.
+        print(f'{len(running_instances_list) - desired_instances_count}개의 인스턴스를 추가 실행 합니다.')
         instances_to_stop = len(running_instances_list) - desired_instances_count
         instances_to_stop_list = running_instances_list[:instances_to_stop]
         ec2.stop_instances(InstanceIds=instances_to_stop_list)
