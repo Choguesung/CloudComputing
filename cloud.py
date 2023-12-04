@@ -276,9 +276,6 @@ def modify_volume_size():
     except Exception as e:
         print(f"Error modifying volume size: {e}")
 
-
-
-
 while True:
     print("                                                            ")
     print("                                                            ")
