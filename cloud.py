@@ -131,41 +131,6 @@ def get_instance_monitoring_data(instance_id):
             print(f"  - Instance Status: {status['InstanceStatus']['Status']}")
             print("\n")
 
-        # # 인스턴스의 모니터링 데이터 확인
-        # monitoring_data = cloudwatch.get_metric_data(
-        #     MetricDataQueries=[
-        #         {
-        #             'Id': 'm1',
-        #             'MetricStat': {
-        #                 'Metric': {
-        #                     'Namespace': 'AWS/EC2',
-        #                     'MetricName': 'CPUUtilization',
-        #                     'Dimensions': [
-        #                         {
-        #                             'Name': 'InstanceId',
-        #                             'Value': instance_id
-        #                         },
-        #                     ]
-        #                 },
-        #                 'Period': 300,
-        #                 'Stat': 'Average',
-        #             },
-        #             'ReturnData': True,
-        #         },
-        #     ],
-        #     StartTime=int((datetime.utcnow() - timedelta(seconds=3600)).timestamp()),  # 1 hour ago
-        #     EndTime=int(datetime.utcnow().timestamp()),
-        # )
-
-        # print("Monitoring Data:")
-        # for result in monitoring_data['MetricDataResults']:
-        #     print(f"  - Query ID: {result['Id']}")
-        #     print(f"  - Metric Data:")
-        #     for timestamp, value in zip(result['Timestamps'], result['Values']):
-        #         formatted_time = datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-        #         print(f"    - Time: {formatted_time}, Value: {value}")
-        #     print("\n")
-
     except Exception as e:
         print(f"Error: {e}")
 
