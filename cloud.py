@@ -84,6 +84,8 @@ def reboot_instance(instance_id):
     ec2.reboot_instances(InstanceIds=[instance_id])
     print(f"Successfully rebooted instance {instance_id}")
 
+    list_instances()
+
 def list_images():
     print("Listing images....")
     # filters = [{'Name': 'name', 'Values': ['masterimg']}]
@@ -106,7 +108,7 @@ def command_input():
         DocumentName="AWS-RunShellScript",
         Parameters={
             'commands': [command],
-            'executionTimeout': ['3600'], },
+            'executionTimeout': ['4000'], },
         TimeoutSeconds=30, )
     command_id = command_response['Command']['CommandId']
     time.sleep(5)
@@ -129,51 +131,55 @@ def get_instance_monitoring_data(instance_id):
             print(f"  - Instance Status: {status['InstanceStatus']['Status']}")
             print("\n")
 
-        # 인스턴스의 모니터링 데이터 확인
-        monitoring_data = cloudwatch.get_metric_data(
-            MetricDataQueries=[
-                {
-                    'Id': 'm1',
-                    'MetricStat': {
-                        'Metric': {
-                            'Namespace': 'AWS/EC2',
-                            'MetricName': 'CPUUtilization',
-                            'Dimensions': [
-                                {
-                                    'Name': 'InstanceId',
-                                    'Value': instance_id
-                                },
-                            ]
-                        },
-                        'Period': 300,
-                        'Stat': 'Average',
-                    },
-                    'ReturnData': True,
-                },
-            ],
-            StartTime=int((datetime.utcnow() - timedelta(seconds=3600)).timestamp()),  # 1 hour ago
-            EndTime=int(datetime.utcnow().timestamp()),
-        )
+        # # 인스턴스의 모니터링 데이터 확인
+        # monitoring_data = cloudwatch.get_metric_data(
+        #     MetricDataQueries=[
+        #         {
+        #             'Id': 'm1',
+        #             'MetricStat': {
+        #                 'Metric': {
+        #                     'Namespace': 'AWS/EC2',
+        #                     'MetricName': 'CPUUtilization',
+        #                     'Dimensions': [
+        #                         {
+        #                             'Name': 'InstanceId',
+        #                             'Value': instance_id
+        #                         },
+        #                     ]
+        #                 },
+        #                 'Period': 300,
+        #                 'Stat': 'Average',
+        #             },
+        #             'ReturnData': True,
+        #         },
+        #     ],
+        #     StartTime=int((datetime.utcnow() - timedelta(seconds=3600)).timestamp()),  # 1 hour ago
+        #     EndTime=int(datetime.utcnow().timestamp()),
+        # )
 
-        print("Monitoring Data:")
-        for result in monitoring_data['MetricDataResults']:
-            print(f"  - Query ID: {result['Id']}")
-            print(f"  - Metric Data:")
-            for timestamp, value in zip(result['Timestamps'], result['Values']):
-                formatted_time = datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-                print(f"    - Time: {formatted_time}, Value: {value}")
-            print("\n")
+        # print("Monitoring Data:")
+        # for result in monitoring_data['MetricDataResults']:
+        #     print(f"  - Query ID: {result['Id']}")
+        #     print(f"  - Metric Data:")
+        #     for timestamp, value in zip(result['Timestamps'], result['Values']):
+        #         formatted_time = datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+        #         print(f"    - Time: {formatted_time}, Value: {value}")
+        #     print("\n")
 
     except Exception as e:
         print(f"Error: {e}")
 
-# cpu 용량 확인하는 코드
+# cpu 용량 확인하는 코드 (얼마나 사용할수있는가)
 def ins_credit(instance_id):                       
     print("Instance credit ....")
     ins_list = []
     ins_list.append(instance_id)
     credits = ec2.describe_instance_credit_specifications(InstanceIds=ins_list)
-    print("[ID] " + instance_id + ", [CPU Credits] " + credits['InstanceCreditSpecifications'][0]['CpuCredits'])
+    
+    # 추가: 현재 인스턴스의 유형 확인
+    instance_type = ec2.describe_instances(InstanceIds=ins_list)['Reservations'][0]['Instances'][0]['InstanceType']
+    
+    print("[ID] " + instance_id + ", [Instance Type] " + instance_type + ", [CPU Credits] " + credits['InstanceCreditSpecifications'][0]['CpuCredits'])
 
 
 # 실행중인 인스턴스 개수 리턴
@@ -220,21 +226,21 @@ def desired_instances(desired_instances_count):
 
     # 총 인스턴스가 요구된 인스턴스보다 적으면 추가로 인스턴스 생성
     while desired_instances_count > all_instance_count:
-        print(f'인스턴스 개수가 모자라 {desired_instances_count - all_instance_count}개의 인스턴스를 추가 생성합니다')
+        print(f'인스턴스 개수가 모자라 {desired_instances_count - all_instance_count} 개의 인스턴스를 추가 생성합니다')
         image_list = list_images()
         create_instance(image_list[0])
         all_instance_count += 1
 
     if desired_instances_count > len(running_instances_list):
         # 원하는 수가 실행 중인 수보다 크면 부족한 만큼의 인스턴스를 시작합니다.
-        print(f'{desired_instances_count - len(running_instances_list)}개의 인스턴스를 추가 실행 합니다.')
+        print(f'{desired_instances_count - len(running_instances_list)} 개의 인스턴스를 추가 실행 합니다.')
         instances_to_start = desired_instances_count - len(running_instances_list)
         terminated_instances_list = terminated_instances()[:instances_to_start]
         ec2.start_instances(InstanceIds=terminated_instances_list)
 
     elif desired_instances_count < len(running_instances_list):
         # 실행 중인 수가 원하는 수보다 크면 초과한 만큼의 인스턴스를 중지합니다.
-        print(f'{len(running_instances_list) - desired_instances_count}개의 인스턴스를 추가 실행 합니다.')
+        print(f'{len(running_instances_list) - desired_instances_count} 개의 인스턴스를 종료합니다.')
         instances_to_stop = len(running_instances_list) - desired_instances_count
         instances_to_stop_list = running_instances_list[:instances_to_stop]
         ec2.stop_instances(InstanceIds=instances_to_stop_list)
@@ -243,6 +249,69 @@ def desired_instances(desired_instances_count):
         print('현재 인스턴스 개수가 원하는 수와 같습니다')
 
     list_instances()
+
+# 인스턴스 용량 정보 출력
+def storage_info(instance_id):
+    print("Fetching storage information...")
+    ins_list = [instance_id]
+
+    try:
+        # 스토리지 정보 확인
+        storage_info = ec2.describe_instance_attribute(InstanceId=instance_id, Attribute='blockDeviceMapping')
+        block_devices = storage_info['BlockDeviceMappings']
+
+        print(f"[ID] {instance_id}, Storage Information:")
+        for device in block_devices:
+            device_name = device['DeviceName']
+            ebs_info = device['Ebs']
+            volume_id = ebs_info['VolumeId']
+            volume_size = ec2.describe_volumes(VolumeIds=[volume_id])['Volumes'][0]['Size']
+
+            # 디바이스 이름, 볼륨 id 볼륨 사이즈에 대한 정보를 출력한다
+            print(f"  - Device: {device_name}, Volume ID: {volume_id}, Volume Size: {volume_size} GB")
+    except Exception as e:
+        print(f"Error fetching storage information: {e}")
+
+def modify_instance_type():
+    instance_id = input("Enter the instance ID: ")
+    new_instance_type = input("Enter the new instance type (e.g., t3.nano): ")
+
+    try:
+        # 현재 인스턴스 유형 확인
+        current_instance_type = ec2.describe_instances(InstanceIds=[instance_id])['Reservations'][0]['Instances'][0]['InstanceType']
+        print(f"Current instance type: {current_instance_type}")
+
+        # 인스턴스 유형 변경
+        response = ec2.modify_instance_attribute(
+            InstanceId=instance_id,
+            InstanceType={'Value': new_instance_type}
+        )
+        print(f"Instance type modified successfully. New instance type: {new_instance_type}")
+        
+        # 기존 인스턴스 유형에서 새로운 인스턴스 유형으로 변경되었다는 메시지 출력
+        print(f"기존 인스턴스 {current_instance_type} 에서 {new_instance_type} 로 변경되었습니다")
+        
+        # 추가로 다른 정보 출력 등의 작업 수행 가능
+
+        ins_credit(instance_id)
+    except Exception as e:
+        print(f"Error modifying instance type: {e}")
+
+# 볼륨 사이즈 변경하는 함수
+def modify_volume_size():
+    volume_id = input("Volume ID:")
+    new_size_gb = int(input("New size GB:"))  # 문자열을 정수로 변환
+
+    try:
+        response = ec2.modify_volume(
+            VolumeId=volume_id,
+            Size=new_size_gb
+        )
+        print("Volume size modified successfully:", response)
+    except Exception as e:
+        print(f"Error modifying volume size: {e}")
+
+
 
 
 while True:
@@ -257,7 +326,8 @@ while True:
     print("  7. reboot instance              8. list images            ")
     print("  9. input command               10. instance monitoring    ")
     print(" 11. instance credit             12. instance scaling       ")
-    print("                                 99. quit                   ")
+    print(" 13. storage info                14. modify instance type   ")
+    print(" 15. modify volume size          99. quit                   ")
     print("------------------------------------------------------------")
 
     number = input("Enter an integer: ")
@@ -298,6 +368,13 @@ while True:
     elif number == 12:
         num = int(input("원하는 인스턴스 개수를 입력하세요: "))
         desired_instances(num)
+    elif number == 13:
+        instance_id = input("Enter instance id: ")
+        storage_info(instance_id)
+    elif number == 14:
+        modify_instance_type()
+    elif number == 15:
+        modify_volume_size()
     elif number == 99:
         print("Goodbye!")
         break
