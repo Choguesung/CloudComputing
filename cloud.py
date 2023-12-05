@@ -9,7 +9,7 @@ aws_access_key_id = os.environ.get("accessID")
 aws_secret_access_key = os.environ.get("accessKey")
 region_name = 'eu-north-1'  # 사용하려는 AWS 리전을 지정하세요
 
-print(aws_access_key_id)
+# print(aws_access_key_id)
 
 # AWS 클라이언트 생성
 ec2 = boto3.client('ec2', region_name=region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
@@ -54,8 +54,13 @@ def start_instance(instance_id):
             print(f"Successfully started instance {instance_id}")
         else:
             print(f"Cannot start instance {instance_id} in the current state: {state}")
+        
+        list_instances()
+
     except Exception as e:
         print(f"Error starting instance {instance_id}: {e}")
+
+
 
 def available_regions():
     print("Available regions....")
@@ -68,6 +73,8 @@ def stop_instance(instance_id):
     ec2.stop_instances(InstanceIds=[instance_id])
     print(f"Successfully stopped instance {instance_id}")
 
+    list_instances()
+
 def create_instance(ami_id):
     print(f"Creating instance with AMI {ami_id}")
     instances = ec2.run_instances(
@@ -78,6 +85,8 @@ def create_instance(ami_id):
     )
     instance_id = instances['Instances'][0]['InstanceId']
     print(f"Successfully created EC2 instance {instance_id} based on AMI {ami_id}")
+
+    list_instances()
 
 def reboot_instance(instance_id):
     print(f"Rebooting .... {instance_id}")
