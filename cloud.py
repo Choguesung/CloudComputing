@@ -9,8 +9,6 @@ aws_access_key_id = os.environ.get("accessID")
 aws_secret_access_key = os.environ.get("accessKey")
 region_name = 'eu-north-1'  # 사용하려는 AWS 리전을 지정하세요
 
-# print(aws_access_key_id)
-
 # AWS 클라이언트 생성
 ec2 = boto3.client('ec2', region_name=region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 ssm = boto3.client('ssm', region_name=region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
