@@ -34,7 +34,7 @@ def available_zones():
     for zone in availability_zones['AvailabilityZones']:
         print(f"[id] {zone['ZoneId']}, "
               f"[region] {zone['RegionName']}, "
-              f"[zone] {zone['ZoneName']}")
+              f"[zone] {zone['ZoneName']}") 
     print(f"You have access to {len(availability_zones['AvailabilityZones'])} Availability Zones.")
 
 def start_instance(instance_id):
@@ -95,7 +95,6 @@ def reboot_instance(instance_id):
 
 def list_images():
     print("Listing images....")
-    # filters = [{'Name': 'name', 'Values': ['masterimg']}]
 
     aws_account_id = sts_client.get_caller_identity().get('Account')
     image_ids = []
