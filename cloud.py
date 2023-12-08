@@ -126,7 +126,6 @@ def command_input():
 
 def get_instance_monitoring_data(instance_id):
     try:
-        # 인스턴스의 상태 확인
         instance_status = ec2.describe_instance_status(InstanceIds=[instance_id])
         print("Instance Status:")
         for status in instance_status['InstanceStatuses']:
